@@ -118,7 +118,7 @@ void basicType(vector<vector<string>> &board)
     // printGameState(board);
     // cout << isEnd(board);
 
-    cin >> k;
+    cin >> k; //zeby program się od razu nie wyłączał
 }
 
 void expandedType()
