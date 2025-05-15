@@ -62,6 +62,7 @@ int isEnd(const vector<vector<string>> board)
         return 2; // gra trwa dalej
 }
 
+//algorytm minimax w wersji podstawowej
 int minimax(vector<vector<string>> board, bool aiMove)
 {
     int score = isEnd(board);
@@ -104,6 +105,7 @@ int minimax(vector<vector<string>> board, bool aiMove)
     }
 }
 
+// Szuka najlepszego ruchu jaki aktualnie można wykonać
 pair<int, int> bestMove(vector<vector<string>> board)
 {
     int bestVal = numeric_limits<int>::min();
@@ -141,6 +143,7 @@ void printGameState(const vector<vector<string>> board)
     cout << "\t---+---+---" << endl;
 }
 
+//zamienia liczbe pola na odpowiedni wiersz i kolumne
 pair<int, int> getField(int number)
 {
     int row = (number-1)/3;
@@ -181,6 +184,8 @@ int getInt(bool playerMove = false, vector<vector<string>> board = {"0", "0"})
     }
 }
 
+
+//tryb podstawowy
 void basicType(vector<vector<string>> &board)
 {
     bool playerTurn = false;
