@@ -7,6 +7,9 @@
 
 using namespace std;
 
+int ABcounter = 0;
+int minimaxcounter = 0;
+
 class TTT{
 private:
     int boardSize;
@@ -167,8 +170,10 @@ public:
         return {(num-1) / boardSize, (num-1) % boardSize};
     }
 
+    // podstawowy
     int minimax(vector<vector<string>> state, bool aiMove)
     {
+        minimaxcounter++;
         int score = isEndState(state);
         if (score != 2)
             return score;
@@ -203,6 +208,59 @@ public:
         return best;
     }
 
+    // alpha-beta
+    int AB_minimax(vector<vector<string>> state, bool aiMove, int alpha, int beta)
+    {
+        ABcounter++;
+        int score = isEndState(state);
+        if (score != 2)
+            return score;
+        
+        int best;
+        if(aiMove)
+        {
+            best = numeric_limits<int>::min();
+            for(int i = 0; i < boardSize; i++)
+            {
+                for(int j = 0; j < boardSize; j++)
+                {
+                    if(state[i][j] == " ")
+                    {
+                        state[i][j] = "X";
+                        int val = AB_minimax(state, false, alpha, beta);
+                        state[i][j] = " ";
+                        best = max(best, val);
+                        alpha = max(alpha, best);
+                        if(beta <= alpha)
+                            return best;
+                    }
+                }
+            }
+            return best;
+        }
+        else
+        {
+            best = numeric_limits<int>::max();
+            for(int i = 0; i < boardSize; i++)
+            {
+                for(int j = 0; j < boardSize; j++)
+                {
+                    if(state[i][j] == " ")
+                    {
+                        state[i][j] = "O";
+                        int val = AB_minimax(state, true, alpha, beta);
+                        state[i][j] = " ";
+                        best = min(best, val);
+                        beta = min(beta, best);
+                        if(beta <= alpha)
+                            return best;
+                    }
+                }
+            }
+            return best;
+        }
+    }
+
     pair<int, int> bestMove()
     {
         int bestVal = numeric_limits<int>::min();
@@ -229,7 +287,33 @@ public:
         return move;
     }
 
-    void play()
+    pair<int, int> AB_bestmove()
+    {
+        int bestVal = numeric_limits<int>::min();
+        pair<int,int> move = {-1, -1};
+
+        for(int i = 0; i < boardSize; i++)
+        {
+            for(int j = 0; j < boardSize; j++)
+            {
+                if(board[i][j] == " ")
+                {
+                    board[i][j] = "X";
+                    int val = AB_minimax(board, false, numeric_limits<int>::min(), numeric_limits<int>::max());
+                    board[i][j] = " ";
+
+                    if(val > bestVal)
+                    {
+                        bestVal = val;
+                        move = {i, j};
+                    }
+                }
+            }
+        }
+        return move;
+    }
+
+    void play(bool isExpanded = false)
     {
         bool playerMove = false;
         // losujemy kto zaczyna
@@ -247,7 +331,7 @@ public:
 
         while(isEnd() == 2)
         {
-            system("CLS");
+            system("clear");
             printBoard();
 
             if(playerMove)
@@ -259,13 +343,24 @@ public:
             }
             else
             {
-                auto [aiRow, aiColumn] = bestMove();
+                pair<int, int> aiMove;
+                if(isExpanded)
+                {
+                    aiMove = AB_bestmove();
+                }
+                else
+                {
+                    aiMove = bestMove();
+                }
+
+                int aiRow = aiMove.first;
+                int aiColumn = aiMove.second;
                 board[aiRow][aiColumn] = "X";
             }
             playerMove = !playerMove;
         }
 
-        system("CLS");
+        system("clear");
         printBoard();
         int result = isEnd();
         if(result == 1)
@@ -276,6 +371,9 @@ public:
             cout << "REMIS!\n";
 
         // żeby program się od razu nie wyłączał
+        cout << endl;
+        cout << "WYWOLANIA MINIMAX: " << minimaxcounter << endl;
+        cout << "WYWOLANIA AB..: " << ABcounter << endl;
         char pause;
         cout << "Wprowadz cokolwiek aby zamknac program\n";
         cin >> pause;
@@ -399,10 +497,11 @@ int _getInt(bool isChoice = false)
 
 int main()
 {
+    srand(time(NULL));
     int choice;
     cout << "===GRA W KOLKO I KRZYZYK==="<< endl << endl;
     cout << "Dokonaj wyboru:" << endl;
-    cout << "1 - Podstawowy minimax\n2 - Rozszerzony minimax" << endl;   
+    cout << "1 - Podstawowy minimax (zalecane maksymalnie dla planszy 3x3)\n2 - Rozszerzony minimax" << endl;   
     choice = _getInt(true);
     if(choice == 1)
     {
@@ -414,11 +513,10 @@ int main()
     }    
     else
     {
-        cout << "[INFO] Jeszcze nie zaimplementowane";
-        // int size;
-        // cout << "Podaj rozmiar planszy: ";
-        // size = _getInt();
-        // TTT game(size);
-        // game.play();
+        int size;
+        cout << "Podaj rozmiar planszy: ";
+        size = _getInt();
+        TTT game(size);
+        game.play(true);
     }
 }
