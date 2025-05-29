@@ -176,7 +176,13 @@ public:
         minimaxcounter++;
         int score = isEndState(state);
         if (score != 2)
-            return score;
+        {
+            if(score == 1)
+                return 10;
+            else if(score == -1)
+                return -10;
+            else return 0;
+        }
         
         int best;
         if(aiMove)
@@ -214,7 +220,13 @@ public:
         ABcounter++;
         int score = isEndState(state);
         if (score != 2)
-            return score;
+        {
+            if(score == 1)
+                return 10;
+            else if(score == -1)
+                return -10;
+            else return 0;
+        }
         
         int best;
         if(aiMove)
@@ -331,7 +343,7 @@ public:
 
         while(isEnd() == 2)
         {
-            system("clear");
+            system("CLS");
             printBoard();
 
             if(playerMove)
@@ -360,7 +372,7 @@ public:
             playerMove = !playerMove;
         }
 
-        system("clear");
+        system("CLS");
         printBoard();
         int result = isEnd();
         if(result == 1)
