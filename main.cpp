@@ -3,272 +3,422 @@
 #include <stdlib.h>
 #include <limits>
 #include <string>
+#include <random>
 
 using namespace std;
 
-// Sprawdza, czy można jeszcze wykonać ruch
-bool canMove(const vector<vector<string>> board)
-{
-    for(int i = 0; i<3; i++)
+class TTT{
+private:
+    int boardSize;
+    vector<vector<string>> board;
+
+public:
+    TTT(int size) : boardSize(size), board(size, vector<string>(size, " ")) {}
+
+    // wyświetlamy planszę
+    void printBoard()
     {
-        for(int j = 0; j<3; j++)
+        cout << "PLANSZA " << boardSize << "x" << boardSize <<":\n";
+        for(int i = 0; i<boardSize; i++)
         {
-            if(board[i][j] == " ")
+            cout << "\t";
+            for(int j = 0; j < boardSize; j++)
             {
-                return true;
+                if(board[i][j] == " ")
+                {
+                    cout << (i *  boardSize + j + 1); // numerujemy pola
+                }
+                else
+                {
+                    cout << board[i][j]; // jesli cos jest postawione na polu, wypisujemy
+                }
+                if(j < boardSize-1)
+                    cout << " | ";
+            }
+            cout << "\n";
+            if(i < boardSize-1)
+            {
+                cout << "\t";
+                for (int j = 0; j < boardSize; j++)
+                {
+                    cout << "---";
+                    if(j < boardSize-1)
+                        cout << "+";
+                    else cout << " ";
+                }
+                cout << "\n";
+            }
+        } 
+    }
+
+    // zabezpieczenie przed błędnymi danymi
+    int getInt(bool playerMove = false)
+    {
+        int val;
+        cin >> val;
+        //dopóki są błędne dane lub dopóki jest ruch gracza i:
+        //(wartość nie jest mniejsza od zera lub
+        // wartość nie jest większa od ostatniego pola lub
+        // jeśli wpisane pole nie jest puste) lub
+        // jeżeli to nie ruch gracza i wartość jest mniejsza od zera
+        while(cin.fail() || (playerMove && (val < 1 || val > boardSize * boardSize || board[getField(val).first][getField(val).second] != " ")) || (!playerMove && val < 0))
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Nieprawidlowa wartosc, sprobuj ponownie\n>> ";
+            cin >> val;
+        }
+        return val;
+    }
+
+    // sprawdzamy czy można wykonać jakikolwiek ruch
+    bool canMove()
+    {
+        for(int i = 0; i < boardSize; i++)
+        {
+            for(int j = 0; j < boardSize; j++)
+            {
+                if(board[i][j] == " ")
+                    return true;
             }
         }
-    }
-    return false;
-}
-
-// Sprawdzamy, czy gra się zakończyła i kto wygrał: X 1, O -1, REMIS 0, gramy dalej 2;
-int isEnd(const vector<vector<string>> board)
-{
-   
-    for(int i = 0; i<3; i++)
-    {
-        if(board[i][0] != " " && board[i][0] == board[i][1] && board[i][1] == board[i][2]) //Sprawdza w poziomie
-            if(board[i][0] == "X")
-                return 1;
-            else if(board[i][0] == "O")
-                return -1;
-        if(board[0][i] != " " && board[0][i] == board[1][i] && board[1][i] == board[2][i]) //Sprawdza w pionie
-            if(board[0][i] == "X")
-                return 1;
-            else if(board[0][i] == "O")
-                return -1;
+        return false;
     }
 
-    // Sprawdzanie przekątnych
-    if(board[0][0] != " " && board [0][0] == board[1][1] && board[1][1] == board[2][2])
+    // sprawdzamy czy gra się zakończyła i zwracamy kto wygrał
+    int isEnd()
     {
-        if(board[0][0] == "X")
-            return 1;
-        else if(board[0][0] == "O")
-            return -1;
-    }
-    if(board[0][2] != " " && board [0][2] == board[1][1] && board[1][1] == board[2][0])
-    {
-        if(board[0][2] == "X")
-            return 1;
-        else if(board[0][2] == "O")
-            return -1;
-    }
-    if(!canMove(board))
-    {
-        return 0; //remis
-    }else
-        return 2; // gra trwa dalej
-}
-
-//algorytm minimax w wersji podstawowej
-int minimax(vector<vector<string>> board, bool aiMove)
-{
-    int score = isEnd(board);
-    if(score != 2)
-        return score;
-    
-    if(aiMove)  
-    {
-        int best = numeric_limits<int>::min(); // na początku ustaw najniższą możliwą wartość
-        for(int i = 0; i < 3; i++)
+        for(int i = 0; i < boardSize; i++)
         {
-            for(int j = 0; j < 3; j++)
+            bool rowWin = true;
+            bool colWin = true;
+            string rSymbol = board[i][0];
+            string cSymbol = board[0][i];
+
+            for(int j = 0; j < boardSize; j++)
+            {
+                //sprawdzamy wygrane w wierszach
+                if(board[i][j] != rSymbol)
+                    rowWin = false;
+                
+                //sprawdzamy wygrane w kolumnach
+                if(board[j][i] != cSymbol)
+                    colWin = false;
+            }
+
+            //sprawdzamy KTO jest zwycięzcą
+            if(rowWin && rSymbol != " ")
+            {
+                if(rSymbol == "X")
+                    return 1;
+                else return -1;
+            }
+
+            if(colWin && cSymbol != " ")
+            {
+                if(cSymbol == "X")
+                    return 1;
+                else return -1;
+            }
+        }
+
+
+//         ----Sprawdzamy dla przekątnych----
+        bool leftDiag = true;
+        bool rightDiag = true;
+        string ld = board[0][0];
+        string rd = board[0][boardSize-1];
+
+        for(int i = 0; i < boardSize; i++)
+        {
+            if(board[i][i] != ld)
+                leftDiag = false;
+            if(board[i][boardSize-1 - i] != rd)
+                rightDiag = false;
+        }
+
+        //sprawdzamy zwycięzce
+        if(leftDiag && ld != " ")
+        {
+            if(ld == "X")
+                return 1;
+            else
+                return -1;
+        }
+
+        if(rightDiag && rd != " ")
+        {
+            if(rd == "X")
+                return 1;
+            else
+                return -1;
+        }
+        
+        //sprawdzamy czy można wykonać jeszcze jakiś ruch
+        if(canMove())
+            return 2;
+        else
+            return 0;
+    }
+
+    // do wyboru pola
+    pair<int, int> getField(int num)
+    {
+        return {(num-1) / boardSize, (num-1) % boardSize};
+    }
+
+    int minimax(vector<vector<string>> state, bool aiMove)
+    {
+        int score = isEndState(state);
+        if (score != 2)
+            return score;
+        
+        int best;
+        if(aiMove)
+            best = numeric_limits<int>::min();
+        else
+            best = numeric_limits<int>::max();
+
+        for(int i = 0; i < boardSize; i++)
+        {
+            for(int j = 0; j < boardSize; j++)
+            {
+                if(state[i][j] == " ")
+                {
+                    if(aiMove)
+                        state[i][j] = "X";
+                    else state[i][j] = "O";
+                    
+                    int val = minimax(state, !aiMove);
+                    state[i][j] = " ";
+
+                    if(aiMove)
+                        best = max(best,val);
+                    else
+                        best = min(best,val);
+                }
+            }
+        }
+
+        return best;
+    }
+
+    pair<int, int> bestMove()
+    {
+        int bestVal = numeric_limits<int>::min();
+        pair<int,int> move = {-1, -1};
+        
+        for(int i = 0; i < boardSize; i++)
+        {
+            for(int j = 0; j < boardSize; j++)
             {
                 if(board[i][j] == " ")
                 {
                     board[i][j] = "X";
-                    best = max(minimax(board, false), best);
+                    int val = minimax(board, false);
                     board[i][j] = " ";
+
+                    if(val > bestVal)
+                    {
+                        bestVal = val;
+                        move = {i, j};
+                    }
                 }
             }
         }
-        return best;
+        return move;
     }
-    else // jeśli ruch gracza
+
+    void play()
     {
-        int best = numeric_limits<int>::max();
-        for(int i = 0; i < 3; i++)
+        bool playerMove = false;
+        // losujemy kto zaczyna
+        int random = rand() % 2 + 1;
+        cout << "Zaczyna: ";
+        if(random == 2)
         {
-            for(int j = 0; j < 3; j++)
-            {
-                if(board[i][j] == " ")
-                {
-                    board[i][j] = "O";
-                    best = min(minimax(board, true), best);
-                    board[i][j] = " ";
-                }
-            }
-        }
-        return best;
-    }
-}
-
-// Szuka najlepszego ruchu jaki aktualnie można wykonać
-pair<int, int> bestMove(vector<vector<string>> board)
-{
-    int bestVal = numeric_limits<int>::min();
-    pair<int, int> bestMove = {-1, -1};
-    for(int i = 0; i < 3; i++)
-    {
-        for(int j = 0; j<3; j++)
-        {
-            if(board[i][j] == " ")
-            {
-                board[i][j] = "X";
-                int move = minimax(board, false);
-                board[i][j] = " ";
-
-                if(move > bestVal)
-                {
-                    bestMove = {i, j};
-                    bestVal = move;
-                }
-            }
-        }
-    }
-    return bestMove;
-}
-
-// Wyświetla aktualną planszę
-void printGameState(const vector<vector<string>> board)
-{
-    cout << "PLANSZA: " << endl;
-    cout << "\t " << board[0][0] << " | " << board[0][1] << " | " << board[0][2] << endl;
-    cout << "\t---+---+---" << endl;
-    cout << "\t " << board[1][0] << " | " << board[1][1] << " | " << board[1][2] << endl;
-    cout << "\t---+---+---" << endl;
-    cout << "\t " << board[2][0] << " | " << board[2][1] << " | " << board[2][2] << endl;
-    cout << "\t---+---+---" << endl;
-}
-
-//zamienia liczbe pola na odpowiedni wiersz i kolumne
-pair<int, int> getField(int number)
-{
-    int row = (number-1)/3;
-    int col = (number-1)%3;
-    return {row, col};
-}
-
-
-// Zabezpieczenie przed wpisaniem typu danych innego niż int
-int getInt(bool playerMove = false, vector<vector<string>> board = {"0", "0"})
-{
-    if(playerMove)
-    {
-        int var;
-        cin >> var;
-        pair<int,int> field = getField(var);
-        while(cin.fail() || var <1 || var > 9 || board[field.first][field.second] != " ")
-        {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');    
-            cout << "Podano nieprawidlowa wartosc, sproboj ponownie\n>> ";
-            cin >> var;
-            field = getField(var);
-        }
-        return var;
-    }else
-    {
-        int var;
-        cin >> var;
-        while(cin.fail() || var <0)
-        {
-            cin.clear();
-            cin.ignore(numeric_limits<streamsize>::max(), '\n');    
-            cout << "Podano nieprawidlowa wartosc, sproboj ponownie\n>> ";
-            cin >> var;
-        }
-        return var;
-    }
-}
-
-
-//tryb podstawowy
-void basicType(vector<vector<string>> &board)
-{
-    bool playerTurn = false;
-    while(isEnd(board) == 2)
-    {
-        system("CLS");
-        printGameState(board);
-
-        if(playerTurn)
-        {
-            cout << "Twoj ruch! Wybierz odpowiednie pole 1-9: ";
-            int player_move = getInt(true, board);
-            pair<int,int> field = getField(player_move);
-            board[field.first][field.second] = "O";
+            cout << "Gracz" << endl;
+            playerMove = true;
         }else
         {
-            pair<int,int> best = bestMove(board);
-            board[best.first][best.second] = "X";
+            cout << "AI" << endl;
         }
-        playerTurn = !playerTurn;
-    }
+        
 
-    system("CLS");
-    printGameState(board);
-    int result = isEnd(board);
-    if (result == 1) cout << "Wygral gracz (X)!" << endl;
-    else if (result == -1) cout << "Wygral komputer (O)!" << endl;
-    else cout << "Remis!" << endl;
-
-    char pause;
-    cout << "Wprowadz cokolwiek aby zakonczyc dzialanie programu" << endl;
-    cin >> pause; //zeby program się od razu nie wyłączał
-}
-
-void expandedType()
-{
-    system("CLS");
-}
-
-
-void menu()
-{
-    int choice;
-    bool rightVal = false;
-    vector<vector<string>> board(3, vector<string>(3," "));
-    cout << "Aby rozpoczac gre w kolko i krzyzyk, wybierz jaki wariant algorytmu chcesz uzyc:" << endl;
-    cout << "1 - Podstawowy Algorytm minimax" << endl;
-    cout << "2 - Rozszerzony Algorytm minimax" << endl;
-    cout << "0 - Wyjdz" << endl;
-    cout << ">> ";
-    choice = getInt();
-
-    while(!rightVal)
-    {
-        switch (choice)
+        while(isEnd() == 2)
         {
-        case 0:
-            cout << "Zegnaj" << endl;
-            exit(0);
-            break;
-        case 1:
-            basicType(board);
-            rightVal = true;
-            break;
-        
-        case 2:
-            expandedType();
-            rightVal = true;
-            break;
-        
-        default:
             system("CLS");
-            cout << "Podano nieprawidlowa wartosc!" << endl;
-            cout << "Sprobuj ponownie\n>> ";
-            choice = getInt();
-            break;
+            printBoard();
+
+            if(playerMove)
+            {
+                cout << "Twoj ruch, wybierz spomiedzy (1-"<< boardSize * boardSize <<" pol): ";
+                int chosenField = getInt(true);
+                auto [row, column] = getField(chosenField);
+                board[row][column] = "O";
+            }
+            else
+            {
+                auto [aiRow, aiColumn] = bestMove();
+                board[aiRow][aiColumn] = "X";
+            }
+            playerMove = !playerMove;
         }
+
+        system("CLS");
+        printBoard();
+        int result = isEnd();
+        if(result == 1)
+            cout << "WYGRALO AI!\n";
+        else if(result == -1)
+            cout << "GRATULACJE WYGRALES\n";
+        else
+            cout << "REMIS!\n";
+
+        // żeby program się od razu nie wyłączał
+        char pause;
+        cout << "Wprowadz cokolwiek aby zamknac program\n";
+        cin >> pause;
+    }
+
+//jest tak nisko, bo to funkcja, żeby w miarę pogrupować
+private:
+
+    // to nam sprawdza koniec na dowolnej planszy, czyli np. tej która jest testowana w minimax
+    // natomiast isEnd sprawdza koniec aktualnej
+    int isEndState(vector<vector<string>> state)
+    {
+        for(int i = 0; i < boardSize; i++)
+        {
+            bool rowWin = true;
+            bool colWin = true;
+            string rSymbol = state[i][0];
+            string cSymbol = state[0][i];
+
+            for(int j = 0; j < boardSize; j++)
+            {
+                //sprawdzamy wygrane w wierszach
+                if(state[i][j] != rSymbol)
+                    rowWin = false;
+                
+                //sprawdzamy wygrane w kolumnach
+                if(state[j][i] != cSymbol)
+                    colWin = false;
+            }
+
+            //sprawdzamy KTO jest zwycięzcą
+            if(rowWin && rSymbol != " ")
+            {
+                if(rSymbol == "X")
+                    return 1;
+                else return -1;
+            }
+
+            if(colWin && cSymbol != " ")
+            {
+                if(cSymbol == "X")
+                    return 1;
+                else return -1;
+            }
+        }
+
+
+//         ----Sprawdzamy dla przekątnych----
+        bool leftDiag = true;
+        bool rightDiag = true;
+        string ld = state[0][0];
+        string rd = state[0][boardSize-1];
+
+        for(int i = 0; i < boardSize; i++)
+        {
+            if(state[i][i] != ld)
+                leftDiag = false;
+            if(state[i][boardSize-1 - i] != rd)
+                rightDiag = false;
+        }
+
+        //sprawdzamy zwycięzce
+        if(leftDiag && ld != " ")
+        {
+            if(ld == "X")
+                return 1;
+            else
+                return -1;
+        }
+
+        if(rightDiag && rd != " ")
+        {
+            if(rd == "X")
+                return 1;
+            else
+                return -1;
+        }
+        
+        //sprawdzamy czy można wykonać jeszcze jakiś ruch
+        for(auto row : state)
+        {
+            for(auto cell : row)
+            {
+                if(cell == " ")
+                    return 2;
+            }
+        }
+        return 0;
+    }
+};
+
+int _getInt(bool isChoice = false)
+{
+    if(isChoice)
+    {
+        int val;
+        cin >> val;
+        while(cin.fail() || val < 1 || val > 2)
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Nieprawidlowa wartosc, sprobuj ponownie\n>> ";
+            cin >> val;
+        }
+        return val;
+    }
+    else
+    {
+        int val;
+        cin >> val;
+        while(cin.fail() || val < 3)
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Nieprawidlowa wartosc, sprobuj ponownie\n>> ";
+            cin >> val;
+        }
+        return val;
     }
 }
-
-
 
 int main()
 {
-    menu();
+    int choice;
+    cout << "===GRA W KOLKO I KRZYZYK==="<< endl << endl;
+    cout << "Dokonaj wyboru:" << endl;
+    cout << "1 - Podstawowy minimax\n2 - Rozszerzony minimax" << endl;   
+    choice = _getInt(true);
+    if(choice == 1)
+    {
+        int size;
+        cout << "Podaj rozmiar planszy: ";
+        size = _getInt();
+        TTT game(size);
+        game.play();
+    }    
+    else
+    {
+        cout << "[INFO] Jeszcze nie zaimplementowane";
+        // int size;
+        // cout << "Podaj rozmiar planszy: ";
+        // size = _getInt();
+        // TTT game(size);
+        // game.play();
+    }
 }
