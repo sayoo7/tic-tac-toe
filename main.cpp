@@ -15,6 +15,7 @@ private:
     int boardSize;
     vector<vector<string>> board;
 
+
 public:
     TTT(int size) : boardSize(size), board(size, vector<string>(size, " ")) {}
 
@@ -325,19 +326,19 @@ public:
         return move;
     }
 
-    void play(bool isExpanded = false)
+    void play(bool isExpanded = false, int whoStart = 0)
     {
         bool playerMove = false;
-        // losujemy kto zaczyna
-        int random = rand() % 2 + 1;
-        cout << "Zaczyna: ";
-        if(random == 2)
+        if(whoStart == 1) // kto zaczyna - losowo
         {
-            cout << "Gracz" << endl;
+            int random = rand() % 2 + 1;
+            if(random == 2)
+            {
+                playerMove = true;
+            }
+        } else if(whoStart == 3) // zaczyna gracz
+        {
             playerMove = true;
-        }else
-        {
-            cout << "AI" << endl;
         }
         
 
@@ -348,6 +349,12 @@ public:
 
             if(playerMove)
             {
+                if(whoStart == 2)
+                {
+                    cout << "(wywolania minimax: " << minimaxcounter << ")" << endl;
+                    cout << "wywolania minimax AB: " << ABcounter << ")" << endl;
+                    whoStart = -999;
+                }
                 cout << "Twoj ruch, wybierz spomiedzy (1-"<< boardSize * boardSize <<" pol): ";
                 int chosenField = getInt(true);
                 auto [row, column] = getField(chosenField);
@@ -477,11 +484,23 @@ private:
     }
 };
 
-int _getInt(bool isChoice = false)
+int _getInt(bool isChoice = false, bool isPick = false)
 {
+    int val;
+    if(isPick)
+    {
+        cin >> val;
+        while(cin.fail() || val < 1 || val > 3)
+        {
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(), '\n');
+            cout << "Nieprawidlowa wartosc, sprobuj ponownie\n>> ";
+            cin >> val;
+        }
+        return val;
+    }
     if(isChoice)
     {
-        int val;
         cin >> val;
         while(cin.fail() || val < 1 || val > 2)
         {
@@ -511,24 +530,33 @@ int main()
 {
     srand(time(NULL));
     int choice;
+    int pickWhoStart;
+
     cout << "===GRA W KOLKO I KRZYZYK==="<< endl << endl;
     cout << "Dokonaj wyboru:" << endl;
     cout << "1 - Podstawowy minimax (zalecane maksymalnie dla planszy 3x3)\n2 - Rozszerzony minimax" << endl;   
     choice = _getInt(true);
+    cout << "Chcesz wybrac kto zaczyna?\n1 - Tak\n2 - Nie" << endl;
+    pickWhoStart = _getInt(true);
+    if(pickWhoStart == 1)
+    {
+        cout << "Kto ma zaczac gre?\n1 - Losowo\n2 - Komputer\n3 - Gracz" << endl;
+        pickWhoStart = _getInt(false, true);
+    }else pickWhoStart = 0;
     if(choice == 1)
     {
         int size;
         cout << "Podaj rozmiar planszy: ";
         size = _getInt();
         TTT game(size);
-        game.play();
-    }    
+        game.play(false, pickWhoStart);
+    }        
     else
     {
         int size;
         cout << "Podaj rozmiar planszy: ";
         size = _getInt();
         TTT game(size);
-        game.play(true);
+        game.play(true, pickWhoStart);
     }
 }
